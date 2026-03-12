@@ -1,0 +1,67 @@
+\frametitle{Test Deep Dive: Power-Cycle Survival \& Wear}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{lstlisting}[style=cstyle, title={Power-cycle survival (manual)}]
+/* Same two-phase pattern as reboot,
+   but requires physical power removal
+   instead of software reset */
+
+if (phase == PHASE_WRITE) {
+  mpu_state = tiku_mpu_unlock_nvm();
+  tiku_persist_init(&store);
+  tiku_persist_register(&store,
+      "pwr", fram_buf, 16);
+  tiku_persist_write(&store,
+      "pwr", data, 5);
+  phase = PHASE_VERIFY;
+  tiku_mpu_lock_nvm(mpu_state);
+  /* Blink LED and wait for user
+     to physically remove power */
+  for (;;) {
+    tiku_common_led1_toggle();
+    tiku_common_delay_ms(500);
+  }
+} else {
+  /* After power restore: verify */
+  tiku_persist_init(&store);
+  TEST_ASSERT(store.count == 1);
+  /* ... read back and compare ... */
+}
+\end{lstlisting}
+\end{column}
+
+\begin{column}{0.48\textwidth}
+\begin{lstlisting}[style=cstyle, title={Wear check test}]
+tiku_persist_store_t store;
+uint8_t fram_buf[8];
+uint32_t wc;
+
+memset(&store, 0, sizeof(store));
+tiku_persist_init(&store);
+tiku_persist_register(&store,
+    "wear", fram_buf, 8);
+
+/* Initially below threshold */
+int r = tiku_persist_wear_check(
+    &store, "wear", &wc);
+TEST_ASSERT(r == 0);
+TEST_ASSERT(wc == 0);
+
+/* Set above threshold */
+store.entries[0].write_count =
+    TIKU_PERSIST_WEAR_THRESHOLD + 1;
+
+r = tiku_persist_wear_check(
+    &store, "wear", &wc);
+TEST_ASSERT(r == 1);
+\end{lstlisting}
+
+\vspace{0.3em}
+\begin{alertblock}{Why Power-Cycle?}
+A software reset never drops Vcc to 0\,V ---
+FRAM is trivially preserved. A true power-cycle
+tests the real-world scenario of battery swaps,
+brown-outs, and field power interruptions.
+\end{alertblock}
+\end{column}
+\end{columns}

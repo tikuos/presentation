@@ -1,0 +1,50 @@
+\frametitle{Test Deep Dive: Arena Full \& Two Arenas}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{lstlisting}[style=cstyle, title={Arena full test}]
+/* Tiny arena: 4 * alignment bytes */
+uint8_t buf[4 * TIKU_MEM_ARCH_ALIGNMENT];
+tiku_arena_t arena;
+tiku_arena_create(&arena, buf,
+    sizeof(buf), 1);
+
+/* First alloc succeeds */
+void *p = tiku_arena_alloc(&arena,
+    2 * TIKU_MEM_ARCH_ALIGNMENT);
+TEST_ASSERT(p != NULL);
+
+/* Fill the rest */
+p = tiku_arena_alloc(&arena,
+    2 * TIKU_MEM_ARCH_ALIGNMENT);
+TEST_ASSERT(p != NULL);
+
+/* Arena exhausted -> NULL */
+p = tiku_arena_alloc(&arena, 1);
+TEST_ASSERT(p == NULL);
+\end{lstlisting}
+\end{column}
+
+\begin{column}{0.48\textwidth}
+\begin{lstlisting}[style=cstyle, title={Two independent arenas}]
+uint8_t buf_a[32], buf_b[64];
+tiku_arena_t arena_a, arena_b;
+
+tiku_arena_create(&arena_a,
+    buf_a, 32, 10);
+tiku_arena_create(&arena_b,
+    buf_b, 64, 20);
+
+/* Allocate from both */
+tiku_arena_alloc(&arena_a, 16);
+tiku_arena_alloc(&arena_b, 32);
+
+/* Reset A only */
+tiku_arena_reset(&arena_a);
+
+/* B is unaffected */
+tiku_mem_stats_t s;
+tiku_arena_stats(&arena_b, &s);
+TEST_ASSERT(s.used_bytes == 32);
+\end{lstlisting}
+\end{column}
+\end{columns}

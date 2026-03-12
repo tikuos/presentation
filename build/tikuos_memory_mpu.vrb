@@ -1,0 +1,31 @@
+\frametitle{Test Deep Dive: Violation Detection}
+\begin{lstlisting}[style=cstyle, title={test\_mem\_mpu.c --- Violation detection test}]
+void test_mpu_violation_detect(void) {
+    tiku_mpu_init();
+    tiku_mpu_enable_violation_nmi();
+    tiku_mpu_clear_violation_flags();
+
+    TEST_ASSERT(tiku_mpu_get_violation_flags() == 0);    /* clean baseline */
+
+    /* Phase 1: write while locked -> violation flag set */
+    test_mpu_trigger_seg_violation(TIKU_MPU_SEG1);       /* host stub */
+    TEST_ASSERT(tiku_mpu_get_violation_flags() != 0);    /* violation detected */
+
+    tiku_mpu_clear_violation_flags();
+    TEST_ASSERT(tiku_mpu_get_violation_flags() == 0);    /* flags cleared */
+
+    /* Phase 2: write while unlocked -> no violation */
+    saved = tiku_mpu_unlock_nvm();
+    tiku_mpu_clear_violation_flags();
+    test_mpu_trigger_seg_violation(TIKU_MPU_SEG1);
+    TEST_ASSERT(tiku_mpu_get_violation_flags() == 0);    /* no violation */
+    tiku_mpu_lock_nvm(saved);
+}
+\end{lstlisting}
+
+\vspace{0.3em}
+\begin{block}{Host vs Hardware}
+On MSP430, the test writes to a real FRAM address (e.g.\ \texttt{0x4400}) to
+trigger a violation. On the host, \texttt{test\_mpu\_trigger\_seg\_violation()}
+checks SAM bits and sets the flag accordingly.
+\end{block}

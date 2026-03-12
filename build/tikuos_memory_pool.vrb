@@ -1,0 +1,55 @@
+\frametitle{Test Deep Dive: Free Validation \& Debug Poisoning}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{lstlisting}[style=cstyle, title={Free validation test}]
+uint8_t buf[32];
+uint8_t other_buf[8];
+tiku_pool_t pool;
+
+tiku_pool_create(&pool, buf, 8, 4, 1);
+
+/* Out-of-range pointer */
+tiku_mem_err_t err;
+err = tiku_pool_free(&pool, other_buf);
+TEST_ASSERT(err ==
+    TIKU_MEM_ERR_INVALID);
+
+/* Past buffer end */
+err = tiku_pool_free(&pool, buf + 32);
+TEST_ASSERT(err ==
+    TIKU_MEM_ERR_INVALID);
+
+/* Misaligned: offset 1 */
+err = tiku_pool_free(&pool, buf + 1);
+TEST_ASSERT(err ==
+    TIKU_MEM_ERR_INVALID);
+\end{lstlisting}
+\end{column}
+
+\begin{column}{0.48\textwidth}
+\begin{lstlisting}[style=cstyle, title={Debug poisoning test}]
+/* Compile with -DTIKU_POOL_DEBUG=1 */
+tiku_pool_create(&pool, buf, 16, 4, 1);
+
+void *p = tiku_pool_alloc(&pool);
+memset(p, 0xAA, pool.block_size);
+
+/* Free the block */
+tiku_pool_free(&pool, p);
+
+/* Verify: bytes after freelist ptr
+   are poisoned with 0xDE */
+uint8_t *block = (uint8_t *)p;
+for (i = sizeof(void *);
+     i < pool.block_size; i++) {
+    TEST_ASSERT(block[i] == 0xDE);
+}
+\end{lstlisting}
+
+\vspace{0.3em}
+\begin{alertblock}{Use-After-Free}
+Reads stale block data? 0xDE makes the bug
+immediately visible in hex dumps.
+\end{alertblock}
+\end{column}
+\end{columns}

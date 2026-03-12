@@ -1,0 +1,8 @@
+\beamer@sectionintoc {1}{Why Arena Allocation?}{3}{0}{1}
+\beamer@sectionintoc {2}{Architecture \& Data Structures}{4}{0}{2}
+\beamer@sectionintoc {3}{API Reference}{7}{0}{3}
+\beamer@sectionintoc {4}{Usage Examples}{13}{0}{4}
+\beamer@sectionintoc {5}{File Organization}{18}{0}{5}
+\beamer@sectionintoc {6}{API Summary}{19}{0}{6}
+\beamer@sectionintoc {7}{Test Suite}{20}{0}{7}
+\beamer@sectionintoc {8}{Summary}{25}{0}{8}

@@ -1,0 +1,10 @@
+\beamer@sectionintoc {1}{Why FRAM Write-Protection?}{3}{0}{1}
+\beamer@sectionintoc {2}{MSP430 MPU Hardware}{4}{0}{2}
+\beamer@sectionintoc {3}{Architecture \& Types}{5}{0}{3}
+\beamer@sectionintoc {4}{Platform Layering}{6}{0}{4}
+\beamer@sectionintoc {5}{API Reference}{9}{0}{5}
+\beamer@sectionintoc {6}{Usage Examples}{14}{0}{6}
+\beamer@sectionintoc {7}{File Organization}{20}{0}{7}
+\beamer@sectionintoc {8}{API Summary}{21}{0}{8}
+\beamer@sectionintoc {9}{Test Suite}{22}{0}{9}
+\beamer@sectionintoc {10}{Summary}{26}{0}{10}
