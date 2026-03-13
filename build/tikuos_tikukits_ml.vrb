@@ -1,0 +1,40 @@
+\frametitle{ML Kit Files}
+\begin{table}
+\centering
+\small
+\begin{tabular}{@{}llp{5.5cm}@{}}
+\toprule
+\textbf{Layer} & \textbf{File} & \textbf{Role} \\
+\midrule
+\multirow{2}{*}{Common}
+  & \texttt{tikukits/ml/tiku\_kits\_ml.h}
+  & Shared return codes for all ML sub-modules \\
+\midrule
+\multirow{2}{*}{Linear Regression}
+  & \texttt{tikukits/ml/regression/tiku\_kits\_ml\_linreg.h}
+  & API, struct, configuration macros \\
+  & \texttt{tikukits/ml/regression/tiku\_kits\_ml\_linreg.c}
+  & Implementation (43 bytes state, O(1) push) \\
+\midrule
+\multirow{2}{*}{Tests}
+  & \texttt{tikukits/tests/ml/test\_kits\_ml.h}
+  & Test function declarations \\
+  & \texttt{tikukits/tests/ml/test\_kits\_ml\_linreg.c}
+  & 9 test groups, 22+ assertions \\
+\midrule
+Examples
+  & \texttt{tikukits/examples/example\_ml\_linreg.c}
+  & 3 practical examples (calibration, trend, prediction) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\vspace{0.5em}
+\begin{block}{Convention for New ML Sub-Modules}
+\begin{enumerate}
+  \item Place files in \texttt{ml/<category>/tiku\_kits\_ml\_<module>.h/.c}
+  \item Include \texttt{../tiku\_kits\_ml.h} for shared return codes
+  \item Use \texttt{tiku\_kits\_ml\_<module>\_*()} naming for all functions
+  \item Add test declarations to \texttt{test\_kits\_ml.h}
+\end{enumerate}
+\end{block}

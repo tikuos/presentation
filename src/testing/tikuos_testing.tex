@@ -135,7 +135,7 @@ no host-side agent needed, just parse UART lines.
 \section{Architecture Overview}
 % ===========================================================================
 
-\begin{frame}{Test Framework Architecture}
+\begin{frame}[fragile]{Test Framework Architecture}
 \begin{center}
 \begin{tikzpicture}[
     box/.style={draw, rounded corners, minimum width=2.8cm, minimum height=0.8cm,
@@ -189,7 +189,7 @@ no host-side agent needed, just parse UART lines.
 \end{frame}
 
 % ---------------------------------------------------------------------------
-\begin{frame}{Firmware Modes: Mutual Exclusion}
+\begin{frame}[fragile]{Firmware Modes: Mutual Exclusion}
 \begin{center}
 \begin{tikzpicture}[
     mode/.style={draw, rounded corners, minimum width=3.5cm, minimum height=1.2cm,
@@ -778,27 +778,424 @@ require real MSP430 hardware.
 \end{frame}
 
 % ===========================================================================
+\section{Python Test Runner}
+% ===========================================================================
+
+\begin{frame}[fragile]{Automated Test Runner: tiku\_test\_runner.py}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\textbf{End-to-End Automation:}
+\begin{enumerate}
+  \item Interactive menu selects test category
+  \item Auto-detects TI LaunchPad serial port
+  \item Modifies \texttt{tiku\_test\_config.h} flags
+  \item Builds and flashes via \texttt{make}
+  \item Monitors UART, parses tagged output
+  \item Displays color-coded pass/fail results
+\end{enumerate}
+
+\vspace{0.5em}
+\begin{block}{Location}
+\texttt{tools/tiku\_test\_runner.py}\\
+Supports 16 test categories across core OS and TikuKits.
+\end{block}
+\end{column}
+
+\begin{column}{0.48\textwidth}
+\begin{center}
+\begin{tikzpicture}[
+    step/.style={draw, rounded corners, minimum width=3.5cm, minimum height=0.6cm,
+                 font=\scriptsize\sffamily, fill=#1},
+    arr/.style={-{Stealth[length=2.5mm]}, thick},
+    >=Stealth
+  ]
+
+  \node[step=blue!15] (select) at (0, 0) {Select category};
+  \node[step=green!15] (config) at (0, -1.0) {Patch config flags};
+  \node[step=orange!15] (build) at (0, -2.0) {make clean \&\& make};
+  \node[step=orange!15] (flash) at (0, -3.0) {make flash};
+  \node[step=red!15] (monitor) at (0, -4.0) {Monitor UART};
+  \node[step=blue!15] (parse) at (0, -5.0) {Parse \& report};
+
+  \draw[arr] (select) -- (config);
+  \draw[arr] (config) -- (build);
+  \draw[arr] (build) -- (flash);
+  \draw[arr] (flash) -- (monitor);
+  \draw[arr] (monitor) -- (parse);
+
+\end{tikzpicture}
+\end{center}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+\begin{frame}[fragile]{Python Test Runner: Usage}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{lstlisting}[style=bashstyle, title={Interactive mode}]
+python3 tools/tiku_test_runner.py
+
+# Select a test category:
+#  1) Watchdog Timer
+#  2) CPU Clock Output
+#  3) Process/Protothread
+#  4) Timer Subsystem
+#  5) Arena Allocator
+#  6) Pool Allocator
+#  7) Persistent FRAM Store
+#  8) MPU Write Protection
+#  9) Region Registry
+# ...
+# Enter number: 3
+\end{lstlisting}
+\end{column}
+
+\begin{column}{0.48\textwidth}
+\begin{lstlisting}[style=bashstyle, title={Non-interactive / CI mode}]
+# Run specific category
+python3 tools/tiku_test_runner.py \
+  --category process \
+  --mcu msp430fr5969
+
+# Just patch config, don't build
+python3 tools/tiku_test_runner.py \
+  --category timer \
+  --config-only
+
+# Parse an existing log file
+python3 tools/tiku_test_runner.py \
+  --parse-file uart.log
+\end{lstlisting}
+
+\vspace{0.3em}
+\begin{block}{Serial Auto-Detection}
+Scans for TI vendor ID (\texttt{0451:2047}) to find the
+LaunchPad's virtual COM port automatically.
+\end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ===========================================================================
+\section{Test Specification Files}
+% ===========================================================================
+
+\begin{frame}[fragile]{Dual-Purpose Test Specifications}
+\begin{columns}[T]
+\begin{column}{0.55\textwidth}
+Each test module directory contains a \texttt{TEST\_*.md} file that serves
+as both \textbf{documentation} and an \textbf{LLM instruction interface}:
+
+\vspace{0.5em}
+\begin{center}
+\begin{tikzpicture}[
+    box/.style={draw, rounded corners, minimum width=3.2cm, minimum height=0.8cm,
+                font=\small\sffamily, fill=#1},
+    arr/.style={-{Stealth[length=3mm]}, thick},
+    >=Stealth
+  ]
+
+  \node[box=blue!15] (md) at (0, 0) {TEST\_PROCESS.md};
+  \node[box=green!15] (human) at (-2.5, -1.8) {Human reads};
+  \node[box=orange!15] (llm) at (2.5, -1.8) {LLM reads};
+  \node[box=green!10, minimum width=2.8cm] (understand) at (-2.5, -3.2) {\scriptsize Understand tests};
+  \node[box=orange!10, minimum width=2.8cm] (generate) at (2.5, -3.2) {\scriptsize Generate C code};
+
+  \draw[arr] (md) -- (human);
+  \draw[arr] (md) -- (llm);
+  \draw[arr] (human) -- (understand);
+  \draw[arr] (llm) -- (generate);
+
+  % Bidirectional
+  \node[box=red!15, minimum width=5cm] (request) at (0, -4.6)
+    {User adds request $\rightarrow$ LLM implements};
+  \draw[arr] (understand) -- (request);
+  \draw[arr] (generate) -- (request);
+
+\end{tikzpicture}
+\end{center}
+\end{column}
+
+\begin{column}{0.42\textwidth}
+\textbf{Spec files created:}
+\begin{table}
+\centering
+\scriptsize
+\begin{tabular}{@{}lr@{}}
+\toprule
+\textbf{File} & \textbf{Tests} \\
+\midrule
+\texttt{TEST\_WATCHDOG.md}  & 4 \\
+\texttt{TEST\_CPUCLOCK.md}  & 1 \\
+\texttt{TEST\_PROCESS.md}   & 10 \\
+\texttt{TEST\_TIMER.md}     & 6 \\
+\texttt{TEST\_MEMORY.md}    & 58 \\
+\midrule
+\textbf{Total}               & \textbf{79} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\vspace{0.3em}
+\begin{block}{Location Convention}
+\texttt{tests/<module>/TEST\_<MODULE>.md}\\
+Lives alongside the C source files it documents.
+\end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+\begin{frame}[fragile]{Spec File Structure}
+Each \texttt{TEST\_*.md} file has three main sections:
+
+\vspace{0.3em}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\textbf{1. Overview}
+\begin{itemize}
+  \item Suite name, source directory, header file
+  \item Parent flag and hardware dependencies
+  \item Key constants used by the tests
+\end{itemize}
+
+\vspace{0.5em}
+\textbf{2. Tests} (one entry per test)
+\begin{itemize}
+  \item Config flag, source file, function name
+  \item Group name (as appears in UART output)
+  \item What the test validates and \textbf{why}
+  \item Key parameters and timing values
+  \item Every \texttt{TEST\_ASSERT} listed with its message
+\end{itemize}
+
+\vspace{0.5em}
+\textbf{3. Requests} (user-editable)
+\begin{itemize}
+  \item Plain-English descriptions of new tests
+  \item LLM reads these to generate C code
+  \item Completed requests move to Tests section
+\end{itemize}
+\end{column}
+
+\begin{column}{0.48\textwidth}
+\begin{lstlisting}[basicstyle=\ttfamily\tiny, frame=single, backgroundcolor=\color{blue!3},
+  title={Example: test entry in TEST\_PROCESS.md}]
+### 4. Broadcast Events
+
+| Field | Value |
+|-------|-------|
+| **Flag** | `TEST_PROCESS_BROADCAST` |
+| **Source** | `test_process_broadcast.c` |
+| **Function** | `test_process_broadcast()` |
+| **Group** | "Broadcast Events" |
+
+**What it tests:**
+Two processes (A and B) are started.
+A broadcast event is posted. Both must
+receive it. A second broadcast verifies
+repeated delivery.
+
+**Assertions:**
+1. Process A received broadcast
+2. Process B received broadcast
+3. Both received second broadcast
+\end{lstlisting}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+\begin{frame}[fragile]{The Request Workflow}
+\begin{center}
+\begin{tikzpicture}[
+    step/.style={draw, rounded corners, minimum width=4.5cm, minimum height=0.9cm,
+                 font=\small\sffamily, fill=#1, align=center},
+    arr/.style={-{Stealth[length=3mm]}, thick},
+    >=Stealth
+  ]
+
+  \node[step=blue!15] (write) at (0, 0)
+    {1. User writes request\\in Requests section};
+  \node[step=orange!15] (llm) at (0, -2.0)
+    {2. LLM reads .md + .c files\\understands existing patterns};
+  \node[step=green!15] (gen) at (0, -4.0)
+    {3. LLM generates new .c file\\updates config flag};
+  \node[step=red!15] (doc) at (0, -6.0)
+    {4. Request moves to Tests\\section with full docs};
+
+  \draw[arr] (write) -- (llm);
+  \draw[arr] (llm) -- (gen);
+  \draw[arr] (gen) -- (doc);
+
+  % Annotations
+  \node[font=\scriptsize\sffamily, text=gray, right] at (3.2, 0)
+    {Plain English, any detail level};
+  \node[font=\scriptsize\sffamily, text=gray, right] at (3.2, -2.0)
+    {Spec gives full context: flags,};
+  \node[font=\scriptsize\sffamily, text=gray, right] at (3.2, -2.4)
+    {assertions, patterns, naming};
+  \node[font=\scriptsize\sffamily, text=gray, right] at (3.2, -4.0)
+    {Follows TikuOS conventions};
+  \node[font=\scriptsize\sffamily, text=gray, right] at (3.2, -4.4)
+    {from spec + existing code};
+  \node[font=\scriptsize\sffamily, text=gray, right] at (3.2, -6.0)
+    {Spec stays accurate \& current};
+
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+\begin{frame}[fragile]{Request Example: Adding a New Process Test}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\textbf{Step 1:} User adds to \texttt{TEST\_PROCESS.md}:
+
+\begin{lstlisting}[basicstyle=\ttfamily\tiny, frame=single, backgroundcolor=\color{blue!3},
+  title={Requests section in TEST\_PROCESS.md}]
+### Request: Process re-start after exit
+
+Start a process, let it run to
+PROCESS_END (auto-exit), then start it
+again. Verify:
+- Second start delivers a fresh INIT
+- Process runs from the beginning
+- Phase counter resets properly
+- is_running is correct throughout
+\end{lstlisting}
+
+\vspace{0.3em}
+\textbf{Step 2:} LLM reads the spec and sees:
+\begin{itemize}
+  \item Existing pattern from lifecycle test
+  \item Flag naming: \texttt{TEST\_PROCESS\_RESTART}
+  \item File naming: \texttt{test\_process\_restart.c}
+  \item Header: \texttt{test\_process.h}
+  \item Group naming convention
+\end{itemize}
+\end{column}
+
+\begin{column}{0.48\textwidth}
+\textbf{Step 3:} LLM generates \texttt{test\_process\_restart.c}:
+
+\begin{lstlisting}[style=cstyle, basicstyle=\ttfamily\tiny,
+  title={Generated: follows existing conventions}]
+#include "test_process.h"
+#if TEST_PROCESS_RESTART
+
+static volatile unsigned int
+    restart_phase = 0;
+TIKU_PROCESS(test_restart_proc,
+             "test_restart");
+TIKU_PROCESS_THREAD(test_restart_proc,
+                    ev, data)
+{
+    TIKU_PROCESS_BEGIN();
+    restart_phase++;
+    TIKU_PROCESS_END();
+}
+
+void test_process_restart(void)
+{
+    TEST_GROUP_BEGIN("Process Restart");
+    restart_phase = 0;
+    tiku_process_init();
+    /* First run */
+    tiku_process_start(
+        &test_restart_proc, NULL);
+    while (tiku_process_run()) {}
+    TEST_ASSERT(restart_phase == 1,
+        "First run reached phase 1");
+    /* Re-start */
+    tiku_process_start(
+        &test_restart_proc, NULL);
+    while (tiku_process_run()) {}
+    TEST_ASSERT(restart_phase == 2,
+        "Second run incremented phase");
+    TEST_GROUP_END("Process Restart");
+}
+#endif
+\end{lstlisting}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+\begin{frame}[fragile]{Why This Approach Works}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{block}{For Humans}
+\begin{itemize}\setlength\itemsep{0.1em}
+  \item Complete test catalog in one place
+  \item Every assertion documented with its purpose
+  \item Quick reference: flag $\leftrightarrow$ file $\leftrightarrow$ function
+  \item Destructive tests clearly marked
+\end{itemize}
+\end{block}
+
+\vspace{0.2em}
+\begin{block}{For LLMs}
+\begin{itemize}\setlength\itemsep{0.1em}
+  \item Full context without reading all C files
+  \item Naming conventions and patterns made explicit
+  \item Existing test inventory prevents duplicates
+  \item Request section is a clear instruction interface
+\end{itemize}
+\end{block}
+\end{column}
+
+\begin{column}{0.48\textwidth}
+\begin{block}{Keeps Specs In Sync}
+The spec file lives \textbf{next to} the C files:
+\begin{itemize}\setlength\itemsep{0.1em}
+  \item Same PR updates both code and docs
+  \item Spec is the review checklist for test PRs
+  \item Stale entries are obvious (flag exists, no .c file)
+\end{itemize}
+\end{block}
+
+\vspace{0.2em}
+\begin{alertblock}{Not a Replacement for Code}
+The \texttt{.md} files do not \emph{generate} tests automatically ---
+they are an \textbf{interface} that provides context and instructions.
+The C code remains the source of truth.
+\end{alertblock}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ===========================================================================
 \section{File Organization}
 % ===========================================================================
 
 \begin{frame}[fragile]{Test Framework Files}
 \begin{table}
 \centering
-\small
+\scriptsize
 \begin{tabular}{@{}lll@{}}
 \toprule
 \textbf{Layer} & \textbf{File} & \textbf{Role} \\
 \midrule
-\multirow{3}{*}{Framework}
+\multirow{4}{*}{Framework}
   & \texttt{tests/tiku\_test\_config.h}    & Per-module enable flags, mutual exclusion \\
   & \texttt{tests/tiku\_test\_harness.h}   & Assertion \& output macros \\
   & \texttt{tests/test\_runner.c}          & Central dispatch \\
+  & \texttt{tools/tiku\_test\_runner.py}   & Automated build, flash, parse (16 categories) \\
+\midrule
+\multirow{5}{*}{Spec Files}
+  & \texttt{tests/watchdog/TEST\_WATCHDOG.md}  & Watchdog test spec (4 tests) \\
+  & \texttt{tests/cpuclock/TEST\_CPUCLOCK.md}  & CPU clock test spec (1 test) \\
+  & \texttt{tests/process/TEST\_PROCESS.md}    & Process test spec (10 tests) \\
+  & \texttt{tests/timer/TEST\_TIMER.md}        & Timer test spec (6 tests) \\
+  & \texttt{tests/memory/TEST\_MEMORY.md}      & Memory test spec (58 tests) \\
 \midrule
 \multirow{4}{*}{Core OS Tests}
   & \texttt{tests/watchdog/*.c}    & Watchdog timer tests (4 files) \\
   & \texttt{tests/process/*.c}     & Process/protothread tests (10 files) \\
   & \texttt{tests/timer/*.c}       & Timer subsystem tests (6 files) \\
-  & \texttt{tests/memory/*.c}      & Arena, pool, persist, MPU, region (5 files) \\
+  & \texttt{tests/memory/*.c}      & Arena, pool, persist, MPU, region (6 files) \\
 \midrule
 \multirow{4}{*}{TikuKits Tests}
   & \texttt{tikukits/tests/maths/*.c}          & Matrix, statistics, distance \\
@@ -834,27 +1231,35 @@ Guards
 \end{block}
 
 \vspace{0.3em}
-\begin{block}{Output Protocol}
-\texttt{[TS:BEGIN/END]}, \texttt{[TG:BEGIN/END]}, \texttt{[T:P/F:N]} ---
-grep-friendly, counter-monotonic, self-contained summary line.
+\begin{block}{Automation \& Tooling}
+\begin{itemize}
+  \item \textbf{Python test runner} --- end-to-end: select, build, flash, parse
+  \item \textbf{TEST\_*.md spec files} --- dual-purpose docs + LLM interface
+  \item Request workflow: write English $\rightarrow$ LLM generates C
+\end{itemize}
 \end{block}
 \end{column}
 
 \begin{column}{0.48\textwidth}
 \begin{block}{Test Coverage}
 \begin{itemize}
-  \item \textbf{79} core OS test assertions across 9 modules
+  \item \textbf{79} core OS tests across 9 modules, each documented in spec files
   \item \textbf{40} tikukits test functions across 6 modules
-  \item Watchdog, process, timer, memory, pool, persist, MPU, region
-  \item Matrix, statistics, distance, sensor, signal features, compression
+  \item 5 spec files total: watchdog, cpuclock, process, timer, memory
 \end{itemize}
+\end{block}
+
+\vspace{0.3em}
+\begin{block}{Spec-Driven Development}
+Every test is documented with: flag, source file, what it validates,
+and every assertion. Users add plain-English requests; LLMs use the
+spec as context to generate correct, convention-following C test code.
 \end{block}
 
 \vspace{0.3em}
 \begin{alertblock}{TikuKits: Fully Optional}
 Guard chain (Makefile $\rightarrow$ \texttt{-D} flag $\rightarrow$ \texttt{\#if} $\rightarrow$
 conditional compile) ensures TikuOS builds and tests independently.
-Zero tikukits code is included when the library is absent.
 \end{alertblock}
 \end{column}
 \end{columns}
@@ -867,11 +1272,13 @@ Zero tikukits code is included when the library is absent.
 \normalsize Testing Framework for Physical AI Endpoints\\[1.5em]
 
 \begin{tabular}{rl}
-  Repository: & \url{https://github.com/tikuos/tikuOS} \\
-  License:    & Apache 2.0 \\
-  Harness:    & \texttt{tests/tiku\_test\_harness.h} \\
-  Config:     & \texttt{tests/tiku\_test\_config.h} \\
-  Runner:     & \texttt{tests/test\_runner.c} \\
+  Repository:    & \url{https://github.com/tikuos/tikuOS} \\
+  License:       & Apache 2.0 \\
+  Harness:       & \texttt{tests/tiku\_test\_harness.h} \\
+  Config:        & \texttt{tests/tiku\_test\_config.h} \\
+  Runner:        & \texttt{tests/test\_runner.c} \\
+  Python Runner: & \texttt{tools/tiku\_test\_runner.py} \\
+  Spec Files:    & \texttt{tests/<module>/TEST\_<MODULE>.md} \\
 \end{tabular}
 \end{center}
 \end{frame}

@@ -1,0 +1,39 @@
+\frametitle{Test Framework Files}
+\begin{table}
+\centering
+\scriptsize
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Layer} & \textbf{File} & \textbf{Role} \\
+\midrule
+\multirow{4}{*}{Framework}
+  & \texttt{tests/tiku\_test\_config.h}    & Per-module enable flags, mutual exclusion \\
+  & \texttt{tests/tiku\_test\_harness.h}   & Assertion \& output macros \\
+  & \texttt{tests/test\_runner.c}          & Central dispatch \\
+  & \texttt{tools/tiku\_test\_runner.py}   & Automated build, flash, parse (16 categories) \\
+\midrule
+\multirow{5}{*}{Spec Files}
+  & \texttt{tests/watchdog/TEST\_WATCHDOG.md}  & Watchdog test spec (4 tests) \\
+  & \texttt{tests/cpuclock/TEST\_CPUCLOCK.md}  & CPU clock test spec (1 test) \\
+  & \texttt{tests/process/TEST\_PROCESS.md}    & Process test spec (10 tests) \\
+  & \texttt{tests/timer/TEST\_TIMER.md}        & Timer test spec (6 tests) \\
+  & \texttt{tests/memory/TEST\_MEMORY.md}      & Memory test spec (58 tests) \\
+\midrule
+\multirow{4}{*}{Core OS Tests}
+  & \texttt{tests/watchdog/*.c}    & Watchdog timer tests (4 files) \\
+  & \texttt{tests/process/*.c}     & Process/protothread tests (10 files) \\
+  & \texttt{tests/timer/*.c}       & Timer subsystem tests (6 files) \\
+  & \texttt{tests/memory/*.c}      & Arena, pool, persist, MPU, region (6 files) \\
+\midrule
+\multirow{4}{*}{TikuKits Tests}
+  & \texttt{tikukits/tests/maths/*.c}          & Matrix, statistics, distance \\
+  & \texttt{tikukits/tests/sensors/*.c}        & Sensor interface \\
+  & \texttt{tikukits/tests/sigfeatures/*.c}    & Signal feature extraction \\
+  & \texttt{tikukits/tests/textcompression/*.c} & RLE, BPE, heatshrink \\
+\midrule
+Guards
+  & \texttt{tiku.h}                         & Tests vs examples mutual exclusion \\
+  & \texttt{examples/tiku\_example\_config.h} & Single-example guard \\
+\bottomrule
+\end{tabular}
+\end{table}
